@@ -31,13 +31,15 @@ namespace Full_Texture_Replacer
             }
             public void getFiles()
             {
+                textures = new List<string>();
+                files = new List<FileInfo>();
                 DirectoryInfo dir = new DirectoryInfo(MelonEnvironment.UserDataDirectory + "/Skins");
                 disableList = File.ReadAllLines(MelonEnvironment.UserDataDirectory + "/Skins/_DisableList.txt");
                 foreach (var f in dir.EnumerateFiles())
                 {
                     textures.Add(f.Name.Replace(".png", ""));
                     files.Add(f);
-                    MelonLogger.Msg(f.Name);
+                    //MelonLogger.Msg(f.Name);
                 }
             }
 
@@ -118,7 +120,7 @@ namespace Full_Texture_Replacer
                         i++;
                     }
                 }
-                MelonLogger.Msg("Done Loading");
+                //MelonLogger.Msg("Done Loading");
                 isRunning = false;
                 StartCoroutine(list());
             }
