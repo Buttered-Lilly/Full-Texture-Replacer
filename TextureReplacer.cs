@@ -26,11 +26,12 @@ namespace Full_Texture_Replacer
         {
             public List<string> textures = new List<string>();
             public List<string> disableList = new List<string>();
-            public List<FileInfo> files = new List<FileInfo>();
+            public List<FileInfo> texturesFiles = new List<FileInfo>();
 
             public void Start()
             {
                 getFiles();
+                //getMeshFiles();
                 StartCoroutine(Texture());
                 SceneManager.sceneLoaded += run;
             }
@@ -38,7 +39,7 @@ namespace Full_Texture_Replacer
             public void getFiles()
             {
                 textures = new List<string>();
-                files = new List<FileInfo>();
+                texturesFiles = new List<FileInfo>();
                 DirectoryInfo dir = new DirectoryInfo(MelonEnvironment.UserDataDirectory + "/Skins");
                 try
                 {
@@ -48,10 +49,38 @@ namespace Full_Texture_Replacer
                 foreach (var f in dir.EnumerateFiles())
                 {
                     textures.Add(f.Name.Replace(".png", ""));
-                    files.Add(f);
+                    texturesFiles.Add(f);
                     //MelonLogger.Msg(f.Name);
                 }
             }
+
+            /*List<AssetBundle> bundles = new List<AssetBundle>();
+
+            public IEnumerator getMeshFiles()
+            {
+                texturesFiles = new List<FileInfo>();
+                DirectoryInfo dir = new DirectoryInfo(MelonEnvironment.UserDataDirectory + "/Meshs");
+                foreach (var f in dir.EnumerateFiles())
+                {
+                    var bundleRequest = AssetBundle.LoadFromFileAsync(f.FullName);
+                    yield return bundleRequest;
+                    bundles.Add(bundleRequest.assetBundle);
+                }
+                foreach (AssetBundle b in bundles)
+                {
+                    try
+                    {
+                        foreach(string item in b.GetAllAssetNames())
+                        {
+                            GameObject.Find(item);
+                        }
+                    }
+                    catch(Exception e)
+                    {
+                        MelonLogger.Msg(e);
+                    }
+                }
+            }*/
 
             void Update()
             {
@@ -59,6 +88,7 @@ namespace Full_Texture_Replacer
                 {
                     MelonLogger.Msg("Reloading...");
                     getFiles();
+                    StartCoroutine(Texture());
                 }
                 StartCoroutine(Renders());
             }
@@ -91,6 +121,12 @@ namespace Full_Texture_Replacer
                     }
                     i++;
                 }
+                if (i > 5)
+                {
+                    yield return new WaitForEndOfFrame();
+                    i = 0;
+                }
+                i++;
             }
 
             public IEnumerator Texture()
@@ -125,40 +161,6 @@ namespace Full_Texture_Replacer
                     }
                     i++;
                 }
-                /*foreach (Renderer bundle in loadedBundle as Renderer[])
-                {
-                    x++;
-
-                    foreach(string ob in disableList)
-                    {
-
-                    }
-                    foreach (var mat in bundle.sharedMaterials)
-                    {
-                        try
-                        {
-                            //MelonLogger.Msg("tex name: " + material.mainTexture);
-                            string parsed = mat.mainTexture + "";
-                            //MelonLogger.Msg(parsed);
-                            parsed = parsed.Replace(" (UnityEngine.Texture2D)", "");
-                            //MelonLogger.Msg(parsed);
-
-                            file = textures.IndexOf(parsed);
-                            if (file != -1)
-                            {
-                                Texture2D tex = mat.mainTexture as Texture2D;
-                                MelonLogger.Msg("Found: " + files[file].FullName);
-                                tex.LoadImage(System.IO.File.ReadAllBytes(MelonEnvironment.UserDataDirectory + "/Skins/" + textures[file] + ".png"));
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            //MelonLogger.Msg(e);
-                        }
-
-                        i++;
-                    }
-                }*/
             }
         }
     }
