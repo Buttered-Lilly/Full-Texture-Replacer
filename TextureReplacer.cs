@@ -1,125 +1,79 @@
-﻿using MelonLoader;
+﻿//using MelonLoader;
 using UnityEngine;
 using System.Collections;
-using MelonLoader.Utils;
+//using MelonLoader.Utils;
 using HarmonyLib;
 using System.Data;
-using static UnityEngine.Rendering.VirtualTexturing.Debugging;
 using UnityEngine.SceneManagement;
 
-[assembly: MelonInfo(typeof(Full_Texture_Replacer.TextureReplacer), "Full Texture Replacer", "1.0.0", "Lilly", null)]
 
 namespace Full_Texture_Replacer
 {
-    public class TextureReplacer : MelonMod
+    public class Replacer : MonoBehaviour
     {
-        Replacer replacer;
+        public static Replacer replacerinstance;
+        public string path;
+        public List<string> textures = new List<string>();
+        public List<string> disableList = new List<string>();
+        public List<FileInfo> texturesFiles = new List<FileInfo>();
 
-        public override void OnLateInitializeMelon()
+        public void Start()
         {
-            replacer = GameObject.Instantiate(GameObject.CreatePrimitive(PrimitiveType.Cube)).AddComponent<Replacer>();
-            GameObject.DontDestroyOnLoad(replacer.gameObject);
-            replacer.gameObject.hideFlags = HideFlags.HideAndDontSave;
+            getFiles();
+            //getMeshFiles();
+            StartCoroutine(Texture());
+            SceneManager.sceneLoaded += run;
         }
 
-        public class Replacer : MonoBehaviour
+        public void getFiles()
         {
-            public List<string> textures = new List<string>();
-            public List<string> disableList = new List<string>();
-            public List<FileInfo> texturesFiles = new List<FileInfo>();
-
-            public void Start()
+            textures = new List<string>();
+            texturesFiles = new List<FileInfo>();
+            DirectoryInfo dir = new DirectoryInfo(path + "/Skins");
+            try
             {
-                getFiles();
-                //getMeshFiles();
-                StartCoroutine(Texture());
-                SceneManager.sceneLoaded += run;
+                disableList = File.ReadAllLines(path + "/Skins/_DisableList.txt").ToList<string>();
             }
-
-            public void getFiles()
+            catch { }
+            foreach (var f in dir.EnumerateFiles())
             {
-                textures = new List<string>();
-                texturesFiles = new List<FileInfo>();
-                DirectoryInfo dir = new DirectoryInfo(MelonEnvironment.UserDataDirectory + "/Skins");
+                textures.Add(f.Name.Replace(".png", ""));
+                texturesFiles.Add(f);
+                //MelonLogger.Msg(f.Name);
+            }
+        }
+
+        void Update()
+        {
+            if (Input.GetKeyDown(KeyCode.Quote))
+            {
+                Debug.Log("Reloading...");
+                getFiles();
+                StartCoroutine(Texture());
+            }
+            StartCoroutine(Renders());
+        }
+
+        public void run(Scene scene, LoadSceneMode mode)
+        {
+            StartCoroutine(Renders());
+            StartCoroutine(Texture());
+        }
+
+        public IEnumerator Renders()
+        {
+            int i = 0;
+            foreach (string g in disableList)
+            {
                 try
                 {
-                    disableList = File.ReadAllLines(MelonEnvironment.UserDataDirectory + "/Skins/_DisableList.txt").ToList<string>();
+                    GameObject x = GameObject.Find(g);
+                    x.GetComponent<Renderer>().enabled = false;
+                    //MelonLogger.Msg("Disabled: " + g);
                 }
-                catch { }
-                foreach (var f in dir.EnumerateFiles())
+                catch (Exception e)
                 {
-                    textures.Add(f.Name.Replace(".png", ""));
-                    texturesFiles.Add(f);
-                    //MelonLogger.Msg(f.Name);
-                }
-            }
-
-            /*List<AssetBundle> bundles = new List<AssetBundle>();
-
-            public IEnumerator getMeshFiles()
-            {
-                texturesFiles = new List<FileInfo>();
-                DirectoryInfo dir = new DirectoryInfo(MelonEnvironment.UserDataDirectory + "/Meshs");
-                foreach (var f in dir.EnumerateFiles())
-                {
-                    var bundleRequest = AssetBundle.LoadFromFileAsync(f.FullName);
-                    yield return bundleRequest;
-                    bundles.Add(bundleRequest.assetBundle);
-                }
-                foreach (AssetBundle b in bundles)
-                {
-                    try
-                    {
-                        foreach(string item in b.GetAllAssetNames())
-                        {
-                            GameObject.Find(item);
-                        }
-                    }
-                    catch(Exception e)
-                    {
-                        MelonLogger.Msg(e);
-                    }
-                }
-            }*/
-
-            void Update()
-            {
-                if (Input.GetKeyDown(KeyCode.Quote))
-                {
-                    MelonLogger.Msg("Reloading...");
-                    getFiles();
-                    StartCoroutine(Texture());
-                }
-                StartCoroutine(Renders());
-            }
-
-            public void run(Scene scene, LoadSceneMode mode)
-            {
-                StartCoroutine(Renders());
-                StartCoroutine(Texture());
-            }
-
-            public IEnumerator Renders()
-            {
-                int i = 0;
-                foreach (string g in disableList)
-                {
-                    try
-                    {
-                        GameObject x = GameObject.Find(g);
-                        x.GetComponent<Renderer>().enabled = false;
-                        //MelonLogger.Msg("Disabled: " + g);
-                    }
-                    catch (Exception e)
-                    {
-                        //MelonLogger.Msg(e);
-                    }
-                    if (i > 5)
-                    {
-                        yield return new WaitForEndOfFrame();
-                        i = 0;
-                    }
-                    i++;
+                    //MelonLogger.Msg(e);
                 }
                 if (i > 5)
                 {
@@ -128,39 +82,40 @@ namespace Full_Texture_Replacer
                 }
                 i++;
             }
-
-            public IEnumerator Texture()
+            if (i > 5)
             {
-                int i = 0;
-                int file = 0;
+                yield return new WaitForEndOfFrame();
+                i = 0;
+            }
+            i++;
+        }
 
-                Texture2D[] texx = Resources.FindObjectsOfTypeAll(typeof(Texture2D)) as Texture2D[];
-                yield return texx;
-                foreach (Texture2D t in texx)
+        public IEnumerator Texture()
+        {
+            int i = 0;
+            int file = 0;
+
+            Texture2D[] texx = Resources.FindObjectsOfTypeAll(typeof(Texture2D)) as Texture2D[];
+            yield return texx;
+            foreach (Texture2D t in texx)
+            {
+                //MelonLogger.Msg(x + " / " + texx.Length);
+                string parsed = t + "";
+                parsed = parsed.Replace(" (UnityEngine.Texture2D)", "");
+                file = textures.IndexOf(parsed);
+                if (file != -1)
                 {
-                    try
-                    {
-                        //MelonLogger.Msg(x + " / " + texx.Length);
-                        string parsed = t + "";
-                        parsed = parsed.Replace(" (UnityEngine.Texture2D)", "");
-                        file = textures.IndexOf(parsed);
-                        if (file != -1)
-                        {
-                            t.LoadImage(System.IO.File.ReadAllBytes(MelonEnvironment.UserDataDirectory + "/Skins/" + textures[file] + ".png"));
-                            //MelonLogger.Msg("Found: " + files[file].FullName);
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        MelonLogger.Msg(e);
-                    }
-                    if (i > 20)
-                    {
-                        yield return new WaitForEndOfFrame();
-                        i = 0;
-                    }
-                    i++;
+                    Task<byte[]> tex = System.IO.File.ReadAllBytesAsync(path + "/Skins/" + textures[file] + ".png");
+                    tex.Wait();
+                    t.LoadImage(tex.Result);
+                    //MelonLogger.Msg("Found: " + files[file].FullName);
                 }
+                if (i > 20)
+                {
+                    yield return new WaitForEndOfFrame();
+                    i = 0;
+                }
+                i++;
             }
         }
     }
